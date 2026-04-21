@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum SubmissionStatus {
+  UPLOADED
+  PROCESSED
+  NEEDS_REVIEW
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+enum SubmissionSource {
+  UPLOAD
+  DEMO
+  SEED
+}
+
+enum ProcessingStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum ProviderKind {
+  MOCK
+  OPENAI
+}
+
+enum IssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Submission {
+  id                String            @id @default(cuid())
+  trackingCode      String            @unique
+  source            SubmissionSource  @default(UPLOAD)
+  status            SubmissionStatus  @default(UPLOADED)
+  documentType      String?
+  fullName          String?
+  companyName       String?
+  email             String?
+  referenceNumber   String?
+  totalAmount       Float?
+  confidenceScore   Float?
+  recommendedAction String?
+  summary           String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  uploadedFile      UploadedFile?
+  extractedDocument ExtractedDocument?
+  validationIssues  ValidationIssue[]
+  processingRuns    ProcessingRun[]
+
+  @@index([status, createdAt])
+}
+
+model UploadedFile {
+  id           String     @id @default(cuid())
+  submissionId String     @unique
+  originalName String
+  mimeType     String
+  extension    String
+  sizeBytes    Int
+  storagePath  String
+  uploadedAt   DateTime   @default(now())
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model ExtractedDocument {
+  id                String       @id @default(cuid())
+  submissionId      String       @unique
+  provider          ProviderKind
+  rawText           String
+  structuredData    Json
+  confidenceScore   Float
+  normalizedName    String?
+  normalizedCompany String?
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  submission        Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model ValidationIssue {
+  id           String       @id @default(cuid())
+  submissionId String
+  severity     IssueSeverity
+  code         String
+  message      String
+  suggestedFix String?
+  details      Json?
+  createdAt    DateTime     @default(now())
+  submission   Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId, severity])
+}
+
+model ProcessingRun {
+  id                String           @id @default(cuid())
+  submissionId      String
+  status            ProcessingStatus @default(PENDING)
+  provider          ProviderKind
+  modelName         String?
+  sourceTextLength  Int?
+  notes             String?
+  recommendedAction String?
+  errorMessage      String?
+  timeline          Json?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  durationMs        Int?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  submission        Submission       @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId, createdAt])
+}
