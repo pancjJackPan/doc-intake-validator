@@ -1,29 +1,64 @@
 # Doc Intake Validator
 
-Doc Intake Validator is a portfolio-grade internal operations web app for document review. A user uploads a PDF or image, the system stores the file metadata, extracts text, maps the transcript into typed fields, runs rule-based validation, and returns an actionable outcome with confidence notes, issue severity, and history tracking.
+Doc Intake Validator is a polished full-stack internal operations application for business intake and compliance-style document review.
 
-This project is designed to demonstrate strong fit for full-stack roles that need:
+A user uploads a PDF or image, the system stores the upload metadata, extracts raw text, maps structured fields, runs typed validation rules, and returns an actionable review outcome with confidence notes, history, and JSON export.
+
+This project is intentionally built to show strong fit for full-stack roles that involve:
 
 - Next.js App Router and TypeScript
-- file processing and upload workflows
+- file upload and processing workflows
+- structured backend logic and rule engines
 - API integration patterns with safe local fallbacks
-- structured business logic and validation rules
-- recruiter-friendly UI polish and clear documentation
+- recruiter-ready UI polish and documentation quality
 
-## Why this project is relevant
+## Why this project matters
 
-This repo intentionally combines product and engineering concerns that show up in real ops tooling:
+Many engineering portfolios show CRUD apps or generic dashboards. This repository is closer to a real internal ops tool:
 
-- A local-first extraction architecture with pluggable providers
-- Persistent processing history with Prisma and SQLite
-- Zod-validated inputs and typed structured outputs
-- A rules engine that produces human-readable findings and next actions
-- Clear result surfaces for analysts, not just raw JSON
-- Demo fixtures and seed data so the app works immediately on a fresh machine
+- it handles real file types
+- it persists upload and processing history
+- it separates extraction, validation, and recommendation concerns
+- it exposes uncertainty instead of hiding it
+- it gives reviewers a clear operational decision, not just raw parsed output
+
+## Core capabilities
+
+- Upload PDF, PNG, JPG, and JPEG files
+- Store upload metadata and processing runs in SQLite via Prisma
+- Extract text locally from PDFs when possible
+- Support a pluggable OCR adapter path for image files
+- Support a pluggable structured extraction provider architecture
+- Run a typed rules engine for validation findings
+- Surface confidence, issues, recommendation, and audit-style processing timeline
+- Export any stored submission as JSON
+- Revisit prior runs from a filterable history view
+- Seed the project with demo data and bundled sample files
+
+## Demo scenarios included
+
+The seeded demo data and bundled sample assets cover three representative cases:
+
+- `clean-intake`
+  - complete document with consistent organization details
+  - expected outcome: approved / processed cleanly
+- `missing-fields`
+  - incomplete intake missing key contact and billing fields
+  - expected outcome: rejected or returned for correction
+- `suspicious-review`
+  - high-value document with low confidence and inconsistent organization mentions
+  - expected outcome: manual review required
+
+Bundled demo assets live in `public/demo/`:
+
+- `clean-intake.pdf`
+- `missing-fields.pdf`
+- `suspicious-review.png`
 
 ## Tech stack
 
-- Next.js 16, App Router
+- Next.js 16
+- React 19
 - TypeScript
 - Tailwind CSS v4
 - Prisma
@@ -32,26 +67,49 @@ This repo intentionally combines product and engineering concerns that show up i
 - React Hook Form
 - Vitest
 
+## Pages and routes
+
+### UI routes
+
+- `/`
+  - landing page
+- `/upload`
+  - upload workspace and one-click demo scenarios
+- `/results/[id]`
+  - immediate processing result view
+- `/submissions`
+  - history and filtering
+- `/submissions/[id]`
+  - detailed operational review view
+
+### API routes
+
+- `POST /api/submissions`
+  - upload a real file or trigger a bundled demo fixture
+- `GET /api/submissions/[id]/export`
+  - export a stored submission as JSON
+
 ## Product workflow
 
-1. Upload a PDF, PNG, JPG, or JPEG from the `/upload` page.
-2. Store file metadata plus a processing run record in SQLite.
-3. Extract raw text locally.
-4. Map the transcript into typed document fields.
-5. Run validation rules for missing data, invalid formats, suspicious inconsistencies, and confidence warnings.
-6. Show the result with:
+1. Upload a PDF or image from `/upload`, or trigger a bundled demo fixture.
+2. Persist `Submission`, `UploadedFile`, and `ProcessingRun` records.
+3. Extract raw text from the stored file.
+4. Map the transcript into a typed document shape.
+5. Run validation rules.
+6. Generate a recommendation and final status.
+7. Show the result with:
    - file summary
    - raw text preview
    - structured field table
    - JSON payload
    - validation findings
-   - recommended action
-   - audit-friendly timeline
-7. Revisit the submission later from `/submissions`.
+   - recommendation
+   - processing timeline
+8. Revisit the submission later from `/submissions`.
 
-## Demo use case
+## Supported extracted fields
 
-The app is framed as a business intake / compliance review console. Example extracted fields:
+The demo domain is business intake / compliance review. Example extracted fields include:
 
 - document type
 - full name
@@ -68,105 +126,121 @@ The app is framed as a business intake / compliance review console. Example extr
 
 ## Architecture overview
 
-### UI
+### Frontend
 
-- `app/`
-  - landing page
-  - upload workspace
-  - result page
-  - history page
-  - submission detail page
-  - API routes for submission processing and JSON export
-- `components/`
-  - reusable dashboard panels
-  - upload workflow UI
-  - status badges and empty states
+`app/`
+- App Router pages and route handlers
+- landing, upload, result, history, and detail views
 
-### Domain / backend
+`components/`
+- dashboard panels
+- upload workflow UI
+- status badges
+- empty states
 
-- `lib/submissions/process-submission.ts`
-  - orchestration layer for upload storage, extraction, validation, and persistence
-- `lib/extraction/`
-  - provider factory
-  - mock structured extraction provider
-  - OpenAI extraction provider
-  - OCR adapter interface and mock OCR implementation
-  - local raw-text extraction for PDFs
-- `lib/validation/`
-  - normalization helpers
-  - typed validation rules
-  - recommendation generation
-- `lib/demo/fixtures.ts`
-  - seeded demo scenarios and bundled fixture metadata
+### Domain services
+
+`lib/submissions/process-submission.ts`
+- orchestration layer for storage, extraction, validation, and persistence
+
+`lib/submissions/queries.ts`
+- read-side queries for landing stats, history, and detail pages
+
+`lib/extraction/`
+- raw text extraction
+- provider factory
+- mock structured extraction provider
+- optional OpenAI extraction provider
+- OCR adapter interface and mock OCR implementation
+
+`lib/validation/`
+- normalization helpers
+- typed validation rules
+- recommendation engine
+
+`lib/demo/fixtures.ts`
+- bundled demo scenarios and fixture metadata
 
 ### Persistence
 
-- `prisma/schema.prisma`
-  - `Submission`
-  - `UploadedFile`
-  - `ExtractedDocument`
-  - `ValidationIssue`
-  - `ProcessingRun`
+`prisma/schema.prisma`
+- `Submission`
+- `UploadedFile`
+- `ExtractedDocument`
+- `ValidationIssue`
+- `ProcessingRun`
 
 ## Data flow
 
 ```text
 Upload / Demo Fixture
   -> Route Handler
-  -> Persist file metadata + processing run
+  -> Persist Submission + UploadedFile + ProcessingRun
   -> Local text extraction
   -> Structured extraction provider
   -> Zod-validated typed document
-  -> Rules engine
-  -> Recommendation builder
+  -> Validation rules
+  -> Recommendation engine
   -> Prisma persistence
   -> Result page / history / export
 ```
 
 ## Extraction architecture
 
-The app runs locally without API keys.
+The app is local-first and runs without secrets by default.
+
+### Structured extraction providers
 
 - `MockExtractionProvider`
   - default mode
   - uses local heuristics against extracted text
-  - keeps the app fully runnable offline
+  - keeps the project fully runnable offline
+
 - `OpenAiExtractionProvider`
   - optional live provider
-  - uses the OpenAI Responses API through a thin `fetch` adapter
-  - validates returned JSON against the same Zod schema
+  - calls the OpenAI Responses API through a thin `fetch` adapter
+  - validates returned JSON against the same Zod schema used locally
+
+### OCR layer
+
 - `MockOcrAdapter`
-  - pluggable OCR fallback for image files when no live OCR service is configured
+  - default OCR fallback
+  - keeps image-based demo flows deterministic in local development
 
 ### Local-first behavior
 
 - PDFs attempt local text extraction first.
-- If the source file is a bundled fixture or text extraction fails, the app falls back to fixture transcript data.
-- Image files route through the OCR adapter interface.
-- Confidence and notes stay visible in the UI instead of hiding uncertainty.
+- If the file is a bundled fixture or no usable PDF text is returned, the app falls back to the fixture transcript.
+- Image files flow through the OCR adapter interface.
+- Confidence and notes remain visible in the UI.
 
-## Validation rules
+## Validation and recommendation logic
 
-The rules engine currently includes:
+### Validation rules included
 
 - required fields missing
 - invalid email format
 - invalid or future date
-- amount missing
+- missing numeric amount
 - reference / invoice format mismatch
 - high amount threshold flag
-- inconsistent organization name across extracted areas
+- inconsistent organization names
 - invalid phone normalization
 - low-confidence extraction warning
 
-Each issue stores:
+Each finding includes:
 
 - severity
 - issue code
 - message
 - suggested fix
 
-The recommendation engine converts those findings into a status such as `APPROVED`, `PROCESSED`, `NEEDS_REVIEW`, or `REJECTED`.
+The recommendation engine turns those findings into statuses such as:
+
+- `APPROVED`
+- `PROCESSED`
+- `NEEDS_REVIEW`
+- `REJECTED`
 
 ## Local setup
 
@@ -186,64 +260,55 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-### What migration does
+### What `db:migrate` does
 
-`npm run db:migrate -- --name init` creates the SQLite database, applies Prisma migrations, generates the Prisma client, and runs the seed script configured in `prisma.config.ts`.
+`npm run db:migrate -- --name init` will:
 
-### Seed data and bundled fixtures
+- create the local SQLite database
+- apply Prisma migrations
+- generate the Prisma client
+- run the seed script configured in `prisma.config.ts`
 
-After migration, the database is seeded with three sample submissions:
-
-- clean document
-- missing-fields document
-- suspicious document
-
-Bundled upload assets also live in `public/demo/`:
-
-- `clean-intake.pdf`
-- `missing-fields.pdf`
-- `suspicious-review.png`
-
-You can either upload them manually or use the one-click demo fixture buttons on `/upload`.
+After that, the app is ready to use immediately.
 
 ## Environment variables
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `DATABASE_URL` | Yes | Prisma database connection string. Defaults to SQLite local dev usage. |
+| `DATABASE_URL` | Yes | Prisma connection string. Local default uses SQLite. |
 | `EXTRACTION_PROVIDER` | No | `mock` or `openai`. Default is `mock`. |
-| `OPENAI_API_KEY` | No | Enables the live OpenAI extraction adapter when paired with `EXTRACTION_PROVIDER=openai`. |
-| `OPENAI_MODEL` | No | Model name for the OpenAI extraction adapter. Default is `gpt-4o-mini`. |
+| `OPENAI_API_KEY` | No | Enables the optional live OpenAI extraction path. |
+| `OPENAI_MODEL` | No | Model name for the optional live extraction path. Default is `gpt-4o-mini`. |
 | `MAX_UPLOAD_SIZE_MB` | No | Upload size cap enforced in the API and UI. |
 | `HIGH_AMOUNT_THRESHOLD` | No | Threshold used by the rules engine to flag high-value submissions. |
 
-## Demo workflow
+## Manual demo flow
 
 1. Start the app.
 2. Open `/upload`.
-3. Click one of the bundled fixture buttons.
+3. Click one of the built-in demo fixtures or upload a file manually.
 4. Review the result page:
-   - clean fixture should approve
-   - missing-fields fixture should reject
+   - clean fixture should pass cleanly
+   - missing-fields fixture should fail or require correction
    - suspicious fixture should require manual review
-5. Open `/submissions` to filter history and revisit stored runs.
-6. Export any stored record as JSON from the result or detail view.
+5. Open `/submissions` to review history.
+6. Export any record as JSON from the result or detail page.
 
-## Testing
+## Testing and verification
 
-Focused tests cover:
+Focused automated coverage exists for:
 
 - normalization helpers
-- validation rule behavior
-- recommendation generation
+- validation rules
+- recommendation logic
 
-Run them with:
+Run tests:
 
 ```bash
 npm test
 ```
 
-Additional verification used during development:
+Run additional checks:
 
 ```bash
 npm run lint
@@ -253,29 +318,13 @@ npm run build
 
 ## Screenshots
 
-Add screenshots here after running the app locally:
+Suggested screenshot placeholders for the repository:
 
 - `docs/screenshots/landing.png`
 - `docs/screenshots/upload.png`
 - `docs/screenshots/result-clean.png`
 - `docs/screenshots/result-review.png`
 - `docs/screenshots/history.png`
-
-## Tradeoffs
-
-- The live provider is optional and intentionally wrapped behind a fallback-first adapter so the repo stays runnable without secrets.
-- OCR is mocked locally to keep the project deterministic and portable.
-- Amounts are stored as `Float` in SQLite for simplicity in local development; moving to Postgres would be a good place to harden monetary precision.
-- The rules engine is intentionally explicit and reviewable instead of hiding logic inside an opaque model call.
-
-## Future improvements
-
-- Add a real OCR provider implementation behind the existing adapter interface.
-- Support async background jobs for large file processing.
-- Add richer per-field source spans and analyst annotations.
-- Add user auth and reviewer ownership.
-- Add CSV / webhook exports for downstream systems.
-- Harden history search with full-text indexing when moving to Postgres.
 
 ## Repository structure
 
@@ -289,9 +338,25 @@ storage/uploads/
 tests/
 ```
 
+## Tradeoffs
+
+- The optional live extraction path exists because it was part of the product requirement, but the app still works fully in mock mode.
+- OCR is mocked locally to keep the project deterministic, portable, and easy to demo.
+- Amounts are stored as `Float` in SQLite for local simplicity; a stricter decimal strategy would be a good next step for Postgres.
+- The rules engine is intentionally explicit and reviewable instead of hiding operational behavior inside opaque model output.
+
+## Future improvements
+
+- Add a real OCR provider behind the existing adapter interface
+- Move long-running processing into background jobs
+- Add per-field source spans and analyst annotations
+- Add authentication and reviewer ownership
+- Add CSV / webhook exports
+- Harden history search with full-text indexing after a Postgres move
+
 ## Notes for reviewers
 
 - The app runs in mock mode by default.
-- No secrets are required for the local demo.
+- No secrets are required for local evaluation.
 - `npm run db:migrate -- --name init` is enough to get a working local database with demo data.
-- The build script uses webpack explicitly because Turbopack’s CSS worker model is not reliable in restricted sandbox environments.
+- The build script uses webpack explicitly for stable builds in restricted or locked-down environments.
